@@ -231,12 +231,35 @@ function OfferDetailDrawer({ offer, onClose }: { offer: Offer; onClose: () => vo
 export function ResultsView({ data }: { data: SearchResponse }) {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
-  const qualifiedStores = data.stores.filter((store) => store.accessQualified);
+  const distanceLimitMeters = (() => {
+    if (data.search.accessMode === 'radius' && data.search.radiusKm !== null) {
+      return data.search.radiusKm * 1000;
+    }
+    if (data.search.accessMode === 'walk' && data.search.maxWalkKm !== null) {
+      return data.search.maxWalkKm * 1000;
+    }
+    return null;
+  })();
+
+  const qualifiedStores = data.stores.filter((store) => {
+    if (distanceLimitMeters !== null && store.distanceMeters !== null) {
+      return store.distanceMeters <= distanceLimitMeters;
+    }
+    return store.accessQualified;
+  });
+
   const qualifiedStoreIds = new Set(qualifiedStores.map((store) => store.storeId));
+  const chainIdsInScope = new Set(qualifiedStores.map((store) => store.chainId));
+  const chainsInScope = data.chains.filter((chain) => chainIdsInScope.has(chain.chainId));
+
   const isOfferInScope = (offer: Offer) => {
+    if (distanceLimitMeters !== null && offer.distanceMeters !== null) {
+      return offer.distanceMeters <= distanceLimitMeters;
+    }
     if (offer.storeId) return qualifiedStoreIds.has(offer.storeId);
     return true;
   };
+
   const bestNow = data.bestNow.filter(isOfferInScope);
   const upcoming = data.upcoming.filter(isOfferInScope);
   const offerGroups = data.offerGroups.map((group) => ({
@@ -295,11 +318,11 @@ export function ResultsView({ data }: { data: SearchResponse }) {
         <section className="panel">
           <div className="section-head">
             <h2>Kæder i søgningen</h2>
-            <span>{data.chains.length} kæder</span>
+            <span>{chainsInScope.length} kæder</span>
           </div>
           <div className="chip-row chip-row-muted">
-            {data.chains.length ? (
-              data.chains.map((chain) => (
+            {chainsInScope.length ? (
+              chainsInScope.map((chain) => (
                 <span key={chain.chainId} className="chip">
                   {chain.name}
                 </span>
