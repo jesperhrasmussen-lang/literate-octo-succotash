@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { buildMockResponse } from '@/lib/search-api';
+import { filterSearchResponse } from '@/lib/filter-search-response';
 import { executeSearch } from '@/lib/search-service';
-import type { SearchRequest } from '@/types/search-types';
+import type { SearchRequest, SearchResponse } from '@/types/search-types';
 import { validateSearchRequest } from '@/types/search-types';
 
 export const runtime = 'nodejs';
@@ -14,13 +15,15 @@ export async function POST(request: Request) {
     const body = (await request.json()) as SearchRequest;
     validateSearchRequest(body);
 
+    let response: SearchResponse;
     if (demoMode) {
-      const mock = buildMockResponse(body);
-      return NextResponse.json(mock, { status: 200 });
+      response = buildMockResponse(body);
+    } else {
+      response = await executeSearch(body);
     }
 
-    const response = await executeSearch(body);
-    return NextResponse.json(response, { status: 200 });
+    const filtered = filterSearchResponse(response);
+    return NextResponse.json(filtered, { status: 200 });
   } catch (error) {
     return NextResponse.json(
       {
