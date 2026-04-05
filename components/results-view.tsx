@@ -231,6 +231,19 @@ function OfferDetailDrawer({ offer, onClose }: { offer: Offer; onClose: () => vo
 export function ResultsView({ data }: { data: SearchResponse }) {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
+  const qualifiedStores = data.stores.filter((store) => store.accessQualified);
+  const qualifiedStoreIds = new Set(qualifiedStores.map((store) => store.storeId));
+  const isOfferInScope = (offer: Offer) => {
+    if (offer.storeId) return qualifiedStoreIds.has(offer.storeId);
+    return true;
+  };
+  const bestNow = data.bestNow.filter(isOfferInScope);
+  const upcoming = data.upcoming.filter(isOfferInScope);
+  const offerGroups = data.offerGroups.map((group) => ({
+    ...group,
+    offers: group.offers.filter(isOfferInScope),
+  }));
+
   return (
     <>
       <div className="results-layout">
@@ -300,11 +313,11 @@ export function ResultsView({ data }: { data: SearchResponse }) {
         <section className="panel">
           <div className="section-head">
             <h2>Bedste tilbud nu</h2>
-            <span>{data.bestNow.length} fund</span>
+            <span>{bestNow.length} fund</span>
           </div>
           <div className="stack-list">
-            {data.bestNow.length ? (
-              data.bestNow.map((offer) => <OfferCard key={offer.offerId} offer={offer} onOpen={setSelectedOffer} />)
+            {bestNow.length ? (
+              bestNow.map((offer) => <OfferCard key={offer.offerId} offer={offer} onOpen={setSelectedOffer} />)
             ) : (
               <EmptySection text="Ingen aktive tilbud matchede den nuværende søgning." />
             )}
@@ -314,11 +327,11 @@ export function ResultsView({ data }: { data: SearchResponse }) {
         <section className="panel">
           <div className="section-head">
             <h2>Kommende tilbud</h2>
-            <span>{data.upcoming.length} fund</span>
+            <span>{upcoming.length} fund</span>
           </div>
           <div className="stack-list">
-            {data.upcoming.length ? (
-              data.upcoming.map((offer) => <OfferCard key={offer.offerId} offer={offer} onOpen={setSelectedOffer} />)
+            {upcoming.length ? (
+              upcoming.map((offer) => <OfferCard key={offer.offerId} offer={offer} onOpen={setSelectedOffer} />)
             ) : (
               <EmptySection text="Ingen kommende tilbud matchede den nuværende søgning." />
             )}
@@ -331,8 +344,8 @@ export function ResultsView({ data }: { data: SearchResponse }) {
             <span>{data.summary.totalStoresInScope} butikker i søgeområdet</span>
           </div>
           <div className="store-list">
-            {data.stores.length ? (
-              data.stores.map((store) => (
+            {qualifiedStores.length ? (
+              qualifiedStores.map((store) => (
                 <article key={store.storeId} className="store-card">
                   <div>
                     <h3>{store.name}</h3>
@@ -358,7 +371,7 @@ export function ResultsView({ data }: { data: SearchResponse }) {
             <span>{data.offerGroups.length} grupper</span>
           </div>
           <div className="group-list">
-            {data.offerGroups.map((group) => (
+            {offerGroups.map((group) => (
               <div key={group.query} className="group-block">
                 <h3>{group.query}</h3>
                 <div className="stack-list">
