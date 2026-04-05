@@ -9,12 +9,12 @@ function parseQueries(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export default function ResultsPage({
+export default async function ResultsPage({
   searchParams,
 }: {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = searchParams;
+  const params = await searchParams;
 
   const accessMode =
     params.accessMode === 'radius' || params.accessMode === 'walk' || params.accessMode === 'transit'
